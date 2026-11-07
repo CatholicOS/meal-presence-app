@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { formatDayShort, intervalSummary, mealNameLower, stateLabel, t } from '@/i18n/it'
-import type { IsoDate, Meal } from '@/lib/dates'
+import { getFormatter, getTranslations } from 'next-intl/server'
+import { intervalSummary } from '@/i18n/summary'
+import { type IsoDate, type Meal, toUtcDate } from '@/lib/dates'
 import { expandInterval } from '@/lib/interval'
 import { UndoButton } from '@/components/UndoButton'
 import { getPersonFromCookie } from '@/server/auth'
@@ -13,6 +14,9 @@ export default async function ConfirmPage({ searchParams }: { searchParams: Prom
   const person = await getPersonFromCookie()
   if (!person) redirect('/link-non-valido')
   const { c } = await searchParams
+  const [t, tInterval, format] = await Promise.all([getTranslations(), getTranslations('interval'), getFormatter()])
+  const day = (iso: IsoDate) => format.dateTime(toUtcDate(iso), 'dayShort')
+  const stateLabel = (present: boolean) => t(present ? 'state.present' : 'state.absent')
   if (!c) notFound()
 
   const { data: change, error: changeErr } = await db
@@ -37,31 +41,31 @@ export default async function ConfirmPage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="mx-auto max-w-md px-4 py-6">
-      <h1 className="text-2xl font-semibold">{t.period.confirmTitle}</h1>
+      <h1 className="text-2xl font-semibold">{t('period.confirmTitle')}</h1>
       <p className="mt-2 text-lg">
-        <strong>{stateLabel(change.state)}</strong>: {intervalSummary(cells)}
+        <strong>{stateLabel(change.state)}</strong>: {intervalSummary(tInterval, day, cells)}
       </p>
-      <p className="mt-1 text-sm text-neutral-600">{t.period.confirmKitchen}</p>
+      <p className="mt-1 text-sm text-neutral-600">{t('period.confirmKitchen')}</p>
 
       <section className="mt-6 rounded-xl bg-white p-4 shadow-sm">
-        <h2 className="font-medium">{t.period.overwrittenTitle}</h2>
+        <h2 className="font-medium">{t('period.overwrittenTitle')}</h2>
         {overwritten.length === 0 ? (
-          <p className="mt-2 text-sm text-neutral-600">{t.period.noOverwritten}</p>
+          <p className="mt-2 text-sm text-neutral-600">{t('period.noOverwritten')}</p>
         ) : (
           <ul className="mt-2 space-y-1 text-sm">
             {overwritten.slice(0, MAX_SHOWN).map((o) => (
               <li key={`${o.date}-${o.meal}`}>
-                {formatDayShort(o.date)}, {mealNameLower[o.meal]}: {t.period.was} <strong>{stateLabel(o.prev_present).toLowerCase()}</strong>
+                {day(o.date)}, {t(`mealLower.${o.meal}`)}: {t('period.was')} <strong>{stateLabel(o.prev_present).toLowerCase()}</strong>
               </li>
             ))}
-            {overwritten.length > MAX_SHOWN && <li className="text-neutral-500">{t.period.overwrittenMore(overwritten.length - MAX_SHOWN)}</li>}
+            {overwritten.length > MAX_SHOWN && <li className="text-neutral-500">{t('period.overwrittenMore', { count: overwritten.length - MAX_SHOWN })}</li>}
           </ul>
         )}
       </section>
 
       <div className="mt-6 space-y-3">
-        {change.undone_by ? <p role="status" className="rounded-lg bg-neutral-100 p-3 text-sm">{t.period.undoReason.already_undone}</p> : <UndoButton changeId={change.id} />}
-        <Link href="/" className="block rounded-full bg-blue-800 py-3 text-center font-semibold text-white">{t.period.backToList}</Link>
+        {change.undone_by ? <p role="status" className="rounded-lg bg-neutral-100 p-3 text-sm">{t('period.undoReason.already_undone')}</p> : <UndoButton changeId={change.id} />}
+        <Link href="/" className="block rounded-full bg-blue-800 py-3 text-center font-semibold text-white">{t('period.backToList')}</Link>
       </div>
     </main>
   )

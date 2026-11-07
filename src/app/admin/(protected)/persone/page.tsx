@@ -1,9 +1,10 @@
-import { t } from '@/i18n/it'
+import { getTranslations } from 'next-intl/server'
 import { type GroupOption, type PersonRow, PersonsTable } from '@/components/admin/PersonsTable'
 import { requireAdmin } from '@/server/auth'
 import { db } from '@/server/db'
 
 export default async function PersonsPage() {
+  const t = await getTranslations()
   await requireAdmin()
   const [persons, groups] = await Promise.all([
     db
@@ -17,7 +18,7 @@ export default async function PersonsPage() {
   if (groups.error) throw new Error(groups.error.message)
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-semibold">{t.admin.persons.title}</h1>
+      <h1 className="mb-4 text-2xl font-semibold">{t('admin.persons.title')}</h1>
       <PersonsTable rows={persons.data as PersonRow[]} groups={groups.data as GroupOption[]} />
     </div>
   )

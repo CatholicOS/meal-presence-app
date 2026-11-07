@@ -2,7 +2,7 @@
 import { useRouter } from 'next/navigation'
 import { Fragment, useState, useTransition } from 'react'
 import { type PersonInput, type Reveal, createPerson, deletePerson, regenerateToken, setPersonActive, updatePerson } from '@/app/admin/(protected)/persone/actions'
-import { formatDateTime, t } from '@/i18n/it'
+import { useFormatter, useTranslations } from 'next-intl'
 import { PencilIcon, TrashIcon } from './icons'
 import { groupSections } from './personsTable.logic'
 
@@ -22,9 +22,9 @@ export interface GroupOption {
   name: string
 }
 
-const P = t.admin.persons
-
 export function PersonsTable({ rows, groups }: { rows: PersonRow[]; groups: GroupOption[] }) {
+  const t = useTranslations()
+  const format = useFormatter()
   const router = useRouter()
   const [pending, start] = useTransition()
   const [editing, setEditing] = useState<PersonRow | 'new' | null>(null)
@@ -33,7 +33,7 @@ export function PersonsTable({ rows, groups }: { rows: PersonRow[]; groups: Grou
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [regenerating, setRegenerating] = useState<string | null>(null)
-  const sections = groupSections(rows, groups, P.withoutGroup)
+  const sections = groupSections(rows, groups, t('admin.persons.withoutGroup'))
 
   function run(fn: () => Promise<void>) {
     start(async () => {
@@ -42,7 +42,7 @@ export function PersonsTable({ rows, groups }: { rows: PersonRow[]; groups: Grou
         setError(null)
       } catch (err) {
         console.error(err)
-        setError(t.genericError)
+        setError(t('genericError'))
       } finally {
         router.refresh()
       }
@@ -67,10 +67,10 @@ export function PersonsTable({ rows, groups }: { rows: PersonRow[]; groups: Grou
   async function copy(text: string) {
     try {
       await navigator.clipboard.writeText(text)
-      setNotice(P.copied)
+      setNotice(t('admin.persons.copied'))
     } catch (err) {
       console.error(err)
-      setNotice(t.genericError)
+      setNotice(t('genericError'))
     }
     setTimeout(() => setNotice(null), 2000)
   }
@@ -78,7 +78,7 @@ export function PersonsTable({ rows, groups }: { rows: PersonRow[]; groups: Grou
   return (
     <div className="space-y-4">
       <button type="button" onClick={() => { setReveal(null); setEditing('new') }} className="rounded-full bg-blue-800 px-4 py-2 text-sm font-semibold text-white">
-        {P.new}
+        {t('admin.persons.new')}
       </button>
 
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
@@ -93,8 +93,8 @@ export function PersonsTable({ rows, groups }: { rows: PersonRow[]; groups: Grou
         <table className="w-full text-sm">
           <thead className="bg-neutral-100 text-left">
             <tr>
-              <th className="p-2">{P.name}</th>
-              <th className="p-2">{P.status}</th>
+              <th className="p-2">{t('admin.persons.name')}</th>
+              <th className="p-2">{t('admin.persons.status')}</th>
               <th className="p-2"></th>
             </tr>
           </thead>
@@ -114,27 +114,27 @@ export function PersonsTable({ rows, groups }: { rows: PersonRow[]; groups: Grou
                     </td>
                     <td className="p-2">
                       <ActiveSwitch name={r.full_name} active={r.active} disabled={pending} onToggle={() => run(() => setPersonActive(r.id, !r.active))} />
-                      <div className="mt-1 text-xs text-neutral-500">{P.lastChange}: {r.last_change_at ? formatDateTime(r.last_change_at) : P.never}</div>
+                      <div className="mt-1 text-xs text-neutral-500">{t('admin.persons.lastChange')}: {r.last_change_at ? format.dateTime(new Date(r.last_change_at), 'dateTime') : t('admin.persons.never')}</div>
                     </td>
                     <td className="p-2">
                       {/* On phones: icons on top, "Nuovo link" below, so the column is only as wide as that button. */}
                       <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:justify-end">
                         <div className="flex items-center justify-end gap-1">
-                          <button type="button" onClick={() => { setReveal(null); setConfirmDelete(null); setEditing(r) }} aria-label={t.editItem(r.full_name)} title={t.edit} className="rounded border p-1.5">
+                          <button type="button" onClick={() => { setReveal(null); setConfirmDelete(null); setEditing(r) }} aria-label={t('editItem', { name: r.full_name })} title={t('edit')} className="rounded border p-1.5">
                             <PencilIcon />
                           </button>
                           <button
                             type="button"
-                            aria-label={t.deleteItem(r.full_name)}
-                            title={t.delete}
+                            aria-label={t('deleteItem', { name: r.full_name })}
+                            title={t('delete')}
                             onClick={() => { setReveal(null); setEditing(null); setConfirmDelete(r.id) }}
                             className="rounded border border-red-300 p-1.5 text-red-700"
                           >
                             <TrashIcon />
                           </button>
                         </div>
-                        <button type="button" disabled={pending} title={P.regenerateHint} onClick={() => { setEditing(null); setConfirmDelete(null); setRegenerating(r.id); run(async () => { setReveal(await regenerateToken(r.id)) }) }} className="whitespace-nowrap rounded border px-2 py-1">
-                          {pending && regenerating === r.id ? t.loading : P.regenerate}
+                        <button type="button" disabled={pending} title={t('admin.persons.regenerateHint')} onClick={() => { setEditing(null); setConfirmDelete(null); setRegenerating(r.id); run(async () => { setReveal(await regenerateToken(r.id)) }) }} className="whitespace-nowrap rounded border px-2 py-1">
+                          {pending && regenerating === r.id ? t('loading') : t('admin.persons.regenerate')}
                         </button>
                       </div>
                     </td>
@@ -151,8 +151,8 @@ export function PersonsTable({ rows, groups }: { rows: PersonRow[]; groups: Grou
                   {confirmDelete === r.id && (
                     <tr ref={scrollIntoViewOnMount} className="bg-red-50">
                       <td colSpan={3} className="p-2">
-                        <div role="alertdialog" aria-label={t.deleteItem(r.full_name)} className="rounded-xl border-2 border-red-300 bg-white p-4">
-                          <p className="text-sm">{P.deleteWarning(r.full_name)}</p>
+                        <div role="alertdialog" aria-label={t('deleteItem', { name: r.full_name })} className="rounded-xl border-2 border-red-300 bg-white p-4">
+                          <p className="text-sm">{t('admin.persons.deleteWarning', { name: r.full_name })}</p>
                           <div className="mt-3 flex flex-wrap gap-2">
                             <button
                               type="button"
@@ -163,9 +163,9 @@ export function PersonsTable({ rows, groups }: { rows: PersonRow[]; groups: Grou
                               })}
                               className="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
                             >
-                              {P.deleteForever}
+                              {t('admin.persons.deleteForever')}
                             </button>
-                            <button type="button" onClick={() => setConfirmDelete(null)} className="rounded-full border px-4 py-2 text-sm">{t.cancel}</button>
+                            <button type="button" onClick={() => setConfirmDelete(null)} className="rounded-full border px-4 py-2 text-sm">{t('cancel')}</button>
                           </div>
                         </div>
                       </td>
@@ -190,13 +190,14 @@ export function PersonsTable({ rows, groups }: { rows: PersonRow[]; groups: Grou
 
 /** On/off switch for whether the person's link works; screen readers hear "Attivo: <name>, switch, on/off". */
 function ActiveSwitch({ name, active, disabled, onToggle }: { name: string; active: boolean; disabled: boolean; onToggle: () => void }) {
+  const t = useTranslations()
   return (
     <button
       type="button"
       role="switch"
       aria-checked={active}
-      aria-label={P.activeOf(name)}
-      title={active ? P.deactivate : P.activate}
+      aria-label={t('admin.persons.activeOf', { name: name })}
+      title={active ? t('admin.persons.deactivate') : t('admin.persons.activate')}
       disabled={disabled}
       onClick={onToggle}
       className={`relative inline-flex h-6 w-10 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${active ? 'bg-green-600' : 'bg-neutral-300'}`}
@@ -212,17 +213,18 @@ function scrollIntoViewOnMount(el: HTMLElement | null) {
 }
 
 function RevealPanel({ reveal, notice, onCopy, onClose }: { reveal: Reveal; notice: string | null; onCopy: () => void; onClose: () => void }) {
+  const t = useTranslations()
   return (
     <section className="rounded-xl border-2 border-amber-400 bg-amber-50 p-4" data-testid="reveal">
-      <p className="text-sm font-medium">{P.linkOnce}</p>
+      <p className="text-sm font-medium">{t('admin.persons.linkOnce')}</p>
       <code className="mt-2 block break-all rounded bg-white p-2 text-xs" data-testid="reveal-link">{reveal.link}</code>
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <button type="button" onClick={onCopy} className="rounded-full border px-3 py-1 text-sm">{P.copyLink}</button>
+        <button type="button" onClick={onCopy} className="rounded-full border px-3 py-1 text-sm">{t('admin.persons.copyLink')}</button>
         {notice && <span className="text-sm text-green-700">{notice}</span>}
-        <button type="button" onClick={onClose} className="ml-auto text-sm text-neutral-600">{t.close}</button>
+        <button type="button" onClick={onClose} className="ml-auto text-sm text-neutral-600">{t('close')}</button>
       </div>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={reveal.qr} alt={P.qr} width={256} height={256} className="mt-3 rounded bg-white p-2" />
+      <img src={reveal.qr} alt={t('admin.persons.qr')} width={256} height={256} className="mt-3 rounded bg-white p-2" />
     </section>
   )
 }
@@ -234,26 +236,27 @@ function PersonForm({ person, groups, pending, onSubmit, onCancel }: {
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
   onCancel: () => void
 }) {
+  const t = useTranslations()
   return (
     <form onSubmit={onSubmit} className="grid gap-3 rounded-xl bg-white p-4 shadow-sm md:grid-cols-3">
       <label className="block text-sm">
-        {P.name}
+        {t('admin.persons.name')}
         <input name="full_name" required maxLength={120} defaultValue={person?.full_name ?? ''} className="mt-1 w-full rounded border p-2" />
       </label>
       <label className="block text-sm">
-        {P.group}
+        {t('admin.persons.group')}
         <select name="group_id" defaultValue={person?.group_id ?? ''} className="mt-1 w-full rounded border p-2">
-          <option value="">{P.noGroup}</option>
+          <option value="">{t('admin.persons.noGroup')}</option>
           {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
         </select>
       </label>
       <label className="block text-sm">
-        {P.dietaryNotes}
+        {t('admin.persons.dietaryNotes')}
         <input name="dietary_notes" maxLength={500} defaultValue={person?.dietary_notes ?? ''} className="mt-1 w-full rounded border p-2" />
       </label>
       <div className="flex gap-2 md:col-span-3">
-        <button type="submit" disabled={pending} className="rounded-full bg-blue-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">{t.save}</button>
-        <button type="button" onClick={onCancel} className="rounded-full border px-4 py-2 text-sm">{t.cancel}</button>
+        <button type="submit" disabled={pending} className="rounded-full bg-blue-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">{t('save')}</button>
+        <button type="button" onClick={onCancel} className="rounded-full border px-4 py-2 text-sm">{t('cancel')}</button>
       </div>
     </form>
   )

@@ -3,19 +3,22 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { setGuests } from '@/app/admin/(protected)/actions'
 import { Toast, useToast } from '@/components/Toast'
-import { t } from '@/i18n/it'
+import { useTranslations } from 'next-intl'
 import type { IsoDate, Meal } from '@/lib/dates'
 
 export type ExtraKind = 'guests' | 'propd'
 
-const LABELS: Record<ExtraKind, { short: string; full: string; note: string }> = {
-  guests: { short: t.admin.kitchen.guests, full: t.admin.kitchen.guests, note: t.admin.kitchen.guestNote },
-  propd: { short: t.admin.kitchen.propd, full: t.admin.kitchen.propdFull, note: t.admin.kitchen.propdNote },
-}
+const LABEL_KEYS = {
+  guests: { short: 'guests', full: 'guests', note: 'guestNote' },
+  propd: { short: 'propd', full: 'propdFull', note: 'propdNote' },
+} as const
 
 /** − / + headcount for one meal: guests, or the Propedeutico ("Propd"), with an optional note. */
 export function GuestStepper({ date, meal, kind = 'guests', count: initial, note: initialNote }: { date: IsoDate; meal: Meal; kind?: ExtraKind; count: number; note: string | null }) {
-  const label = LABELS[kind]
+  const t = useTranslations()
+  const tk = useTranslations('admin.kitchen')
+  const keys = LABEL_KEYS[kind]
+  const label = { short: tk(keys.short), full: tk(keys.full), note: tk(keys.note) }
   const router = useRouter()
   const [count, setCount] = useState(initial)
   const [note, setNote] = useState(initialNote ?? '')
@@ -42,7 +45,7 @@ export function GuestStepper({ date, meal, kind = 'guests', count: initial, note
         await setGuests({ date, meal, kind, count: next, note: nextNote })
       } catch (err) {
         console.error(err)
-        show(t.genericError, true)
+        show(t('genericError'), true)
         setCount(initial)
         setNote(initialNote ?? '')
       }

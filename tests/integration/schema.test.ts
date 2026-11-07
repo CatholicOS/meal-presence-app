@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { q, resetData, rpc, sql } from './helpers'
 
 beforeAll(resetData)
@@ -98,6 +98,26 @@ describe('is_locked (settings: 10:00 / 10:00)', () => {
     ['2026-01-13', 'dinner', '2026-01-13T09:00:00Z', true], // 10:00 CET
   ])('%s %s at %s → %s', async (date, meal, now, expected) => {
     expect(await rpc('is_locked', { p_date: date, p_meal: meal, p_now: now })).toBe(expected)
+  })
+})
+
+describe('is_locked follows the time_zone setting', () => {
+  afterEach(async () => {
+    await sql`update settings set value = '"Europe/Rome"' where key = 'time_zone'`
+  })
+  it('uses the configured zone for today and the cutoff', async () => {
+    await sql`update settings set value = '"America/New_York"' where key = 'time_zone'`
+    // 10:00 EDT = 14:00 UTC
+    expect(await rpc('is_locked', { p_date: '2026-09-13', p_meal: 'lunch', p_now: '2026-09-13T13:59:00Z' })).toBe(false)
+    expect(await rpc('is_locked', { p_date: '2026-09-13', p_meal: 'lunch', p_now: '2026-09-13T14:00:00Z' })).toBe(true)
+    // 02:00 UTC on the 14th is still the 13th in New York
+    expect(await rpc('is_locked', { p_date: '2026-09-13', p_meal: 'dinner', p_now: '2026-09-14T02:00:00Z' })).toBe(true)
+    expect(await rpc('is_locked', { p_date: '2026-09-14', p_meal: 'lunch', p_now: '2026-09-14T02:00:00Z' })).toBe(false)
+  })
+  it('falls back to Europe/Rome for an unknown zone', async () => {
+    await sql`update settings set value = '"Mars/Olympus"' where key = 'time_zone'`
+    expect(await rpc('is_locked', { p_date: '2026-09-13', p_meal: 'lunch', p_now: '2026-09-13T08:00:00Z' })).toBe(true)
+    expect(await rpc('is_locked', { p_date: '2026-09-13', p_meal: 'lunch', p_now: '2026-09-13T07:59:00Z' })).toBe(false)
   })
 })
 

@@ -1,7 +1,7 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useTransition } from 'react'
-import { t } from '@/i18n/it'
+import { useTranslations } from 'next-intl'
 
 /**
  * Re-renders the current route with fresh server data. Needed because an iPhone home-screen app
@@ -10,6 +10,7 @@ import { t } from '@/i18n/it'
  * `updatedAt` is rendered by the server, so it only changes when fresh data has actually arrived.
  */
 export function RefreshButton({ updatedAt }: { updatedAt: string }) {
+  const t = useTranslations()
   const router = useRouter()
   const [pending, start] = useTransition()
 
@@ -38,9 +39,9 @@ export function RefreshButton({ updatedAt }: { updatedAt: string }) {
         className="flex items-center gap-1 rounded border px-3 py-1 disabled:opacity-40"
       >
         <span aria-hidden className={pending ? 'inline-block animate-spin' : 'inline-block'}>↻</span>
-        {t.admin.kitchen.refresh}
+        {t('admin.kitchen.refresh')}
       </button>
-      <span data-testid="updated-at" className="text-sm text-neutral-500">{t.admin.kitchen.updatedAt(updatedAt)}</span>
+      <span data-testid="updated-at" className="text-sm text-neutral-500">{t('admin.kitchen.updatedAt', { time: updatedAt })}</span>
     </div>
   )
 }

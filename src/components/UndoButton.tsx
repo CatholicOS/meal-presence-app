@@ -1,8 +1,11 @@
 'use client'
 import { useState } from 'react'
-import { t } from '@/i18n/it'
+import { type Messages, useTranslations } from 'next-intl'
+
+type UndoReason = keyof Messages['period']['undoReason']
 
 export function UndoButton({ changeId }: { changeId: string }) {
+  const t = useTranslations()
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -17,19 +20,20 @@ export function UndoButton({ changeId }: { changeId: string }) {
         return
       }
       const body = (await res.json().catch(() => ({}))) as { error?: string }
-      setError(t.period.undoReason[body.error ?? ''] ?? t.genericError)
+      const reason = `period.undoReason.${body.error ?? ''}` as `period.undoReason.${UndoReason}`
+      setError(t.has(reason) ? t(reason) : t('genericError'))
     } catch {
-      setError(t.genericError)
+      setError(t('genericError'))
     } finally {
       setBusy(false)
     }
   }
-  if (done) return <p role="status" className="rounded-lg bg-neutral-100 p-3 text-sm">{t.period.undone}</p>
+  if (done) return <p role="status" className="rounded-lg bg-neutral-100 p-3 text-sm">{t('period.undone')}</p>
   return (
     <div className="space-y-2">
       {error && <p role="status" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       <button type="button" onClick={undo} disabled={busy} className="w-full rounded-full border-2 border-neutral-400 py-3 font-semibold disabled:opacity-40">
-        {t.period.undo}
+        {t('period.undo')}
       </button>
     </div>
   )

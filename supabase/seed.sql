@@ -8,5 +8,7 @@ insert into season_defaults (label, start_md, end_md, lunch_default, dinner_defa
 
 insert into settings (key, value) values
   ('lunch_cutoff',  '"10:00"'),
-  ('dinner_cutoff', '"10:00"')
+  ('dinner_cutoff', '"10:00"'),
+  ('default_locale', '"it"'),
+  ('time_zone', '"Europe/Rome"')
 on conflict (key) do nothing;

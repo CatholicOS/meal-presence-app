@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
-import type { IsoDate, Meal } from '@/lib/dates'
-import { mealName, t } from '@/i18n/it'
+import { type IsoDate, type Meal, toUtcDate } from '@/lib/dates'
+import { useFormatter, useTranslations } from 'next-intl'
 import { setCell, toggledCell } from './dayList.logic'
 import { Pill } from './Pill'
 import { Toast, useToast } from './Toast'
@@ -14,13 +14,15 @@ export interface CellState {
 }
 export interface DayRow {
   date: IsoDate
-  label: string
   isToday: boolean
   lunch: CellState
   dinner: CellState
 }
 
 export function DayList({ rows: initial, cutoffs }: { rows: DayRow[]; cutoffs: { lunch: string; dinner: string } }) {
+  const t = useTranslations()
+  // Formatted here, not on the server: rows live in state, and a language switch must relabel them.
+  const format = useFormatter()
   const [rows, setRows] = useState(initial)
   const [pending, setPending] = useState<Set<string>>(new Set())
   const { msg, show } = useToast()
@@ -44,13 +46,13 @@ export function DayList({ rows: initial, cutoffs }: { rows: DayRow[]; cutoffs: {
       })
       if (!res.ok) {
         setRows((rs) => setCell(rs, date, meal, before))
-        show(res.status === 409 ? t.member.lockedError : t.member.saveError, true)
+        show(res.status === 409 ? t('member.lockedError') : t('member.saveError'), true)
         return
       }
-      show(t.member.saved)
+      show(t('member.saved'))
     } catch {
       setRows((rs) => setCell(rs, date, meal, before))
-      show(t.member.saveError, true)
+      show(t('member.saveError'), true)
     } finally {
       setPending((p) => {
         const next = new Set(p)
@@ -65,16 +67,16 @@ export function DayList({ rows: initial, cutoffs }: { rows: DayRow[]; cutoffs: {
       {rows.map((r) => (
         <div key={r.date} className="rounded-xl bg-white p-3 shadow-sm">
           <div className="mb-2 flex items-baseline justify-between">
-            <span className="font-medium capitalize">{r.label}</span>
+            <span className="font-medium capitalize">{format.dateTime(toUtcDate(r.date), 'dayLong')}</span>
             {r.isToday && (
               <span className="text-xs text-neutral-500">
-                {t.member.today} · {t.member.lockedAt(r.lunch.locked ? cutoffs.dinner : cutoffs.lunch)}
+                {t('member.today')} · {t('member.lockedAt', { time: r.lunch.locked ? cutoffs.dinner : cutoffs.lunch })}
               </span>
             )}
           </div>
           <div className="flex gap-2">
-            <Pill label={mealName.lunch} {...r.lunch} onToggle={() => toggle(r.date, 'lunch')} />
-            <Pill label={mealName.dinner} {...r.dinner} onToggle={() => toggle(r.date, 'dinner')} />
+            <Pill label={t('meal.lunch')} {...r.lunch} onToggle={() => toggle(r.date, 'lunch')} />
+            <Pill label={t('meal.dinner')} {...r.dinner} onToggle={() => toggle(r.date, 'dinner')} />
           </div>
         </div>
       ))}

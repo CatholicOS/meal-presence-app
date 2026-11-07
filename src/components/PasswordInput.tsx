@@ -1,6 +1,6 @@
 'use client'
 import { useId, useState } from 'react'
-import { t } from '@/i18n/it'
+import { useTranslations } from 'next-intl'
 
 interface Props {
   label: string
@@ -12,6 +12,7 @@ interface Props {
 
 /** Password field with a show/hide toggle. */
 export function PasswordInput({ label, value, onChange, autoComplete, required = true }: Props) {
+  const t = useTranslations('admin')
   const [visible, setVisible] = useState(false)
   const id = useId()
   return (
@@ -30,7 +31,7 @@ export function PasswordInput({ label, value, onChange, autoComplete, required =
         <button
           type="button"
           onClick={() => setVisible((v) => !v)}
-          aria-label={visible ? t.admin.hidePassword : t.admin.showPassword}
+          aria-label={visible ? t('hidePassword') : t('showPassword')}
           aria-pressed={visible}
           className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-neutral-500 hover:text-neutral-800"
         >

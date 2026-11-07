@@ -1,7 +1,7 @@
 'use client'
 import Link, { useLinkStatus } from 'next/link'
 import { usePathname } from 'next/navigation'
-import { t } from '@/i18n/it'
+import { useTranslations } from 'next-intl'
 
 /** Admin nav link: highlights the current section and shows a spinner while the navigation is pending. */
 export function NavLink({ href, label }: { href: string; label: string }) {
@@ -20,7 +20,8 @@ export function NavLink({ href, label }: { href: string; label: string }) {
 }
 
 function PendingDot() {
+  const t = useTranslations()
   const { pending } = useLinkStatus()
   if (!pending) return null
-  return <span role="status" aria-label={t.loading} className="ml-1 inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+  return <span role="status" aria-label={t('loading')} className="ml-1 inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
 }
