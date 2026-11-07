@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addDays, cellFromKey, cellKey, compareCells, dayNumber, isIsoDate, romeParts } from './dates'
+import { addDays, cellFromKey, cellKey, compareCells, dayNumber, isIsoDate, isTimeZone, localParts } from './dates'
 
 describe('isIsoDate', () => {
   it('accepts real dates', () => {
@@ -37,13 +37,28 @@ describe('cell keys', () => {
   })
 })
 
-describe('romeParts', () => {
+describe('localParts', () => {
   it('converts UTC instants to Rome local date and minutes (CEST)', () => {
-    expect(romeParts(new Date('2026-09-13T22:30:00Z'))).toEqual({ date: '2026-09-14', minutes: 30 })
-    expect(romeParts(new Date('2026-09-13T07:59:00Z'))).toEqual({ date: '2026-09-13', minutes: 9 * 60 + 59 })
+    expect(localParts(new Date('2026-09-13T22:30:00Z'))).toEqual({ date: '2026-09-14', minutes: 30 })
+    expect(localParts(new Date('2026-09-13T07:59:00Z'))).toEqual({ date: '2026-09-13', minutes: 9 * 60 + 59 })
   })
   it('handles CET (winter) offset', () => {
-    expect(romeParts(new Date('2026-01-13T23:30:00Z'))).toEqual({ date: '2026-01-14', minutes: 30 })
-    expect(romeParts(new Date('2026-01-13T09:00:00Z'))).toEqual({ date: '2026-01-13', minutes: 600 })
+    expect(localParts(new Date('2026-01-13T23:30:00Z'))).toEqual({ date: '2026-01-14', minutes: 30 })
+    expect(localParts(new Date('2026-01-13T09:00:00Z'))).toEqual({ date: '2026-01-13', minutes: 600 })
+  })
+  it('follows another time zone when given one', () => {
+    // 22:30 UTC is 18:30 in New York (EDT, UTC−4) on the same day, and 07:30 the next day in Tokyo.
+    expect(localParts(new Date('2026-09-13T22:30:00Z'), 'America/New_York')).toEqual({ date: '2026-09-13', minutes: 18 * 60 + 30 })
+    expect(localParts(new Date('2026-09-13T22:30:00Z'), 'Asia/Tokyo')).toEqual({ date: '2026-09-14', minutes: 7 * 60 + 30 })
+  })
+})
+
+describe('isTimeZone', () => {
+  it('accepts IANA names and rejects anything else', () => {
+    expect(isTimeZone('Europe/Rome')).toBe(true)
+    expect(isTimeZone('America/Sao_Paulo')).toBe(true)
+    expect(isTimeZone('Mars/Olympus')).toBe(false)
+    expect(isTimeZone('')).toBe(false)
+    expect(isTimeZone(42)).toBe(false)
   })
 })

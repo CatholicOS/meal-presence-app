@@ -5,7 +5,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useRouter } from 'next/navigation'
 import { useId, useState, useTransition } from 'react'
 import { type GroupResult, createGroup, deleteGroup, moveGroup, reorderGroups, updateGroup } from '@/app/admin/(protected)/gruppi/actions'
-import { t } from '@/i18n/it'
+import { useTranslations } from 'next-intl'
 import { PencilIcon, TrashIcon } from './icons'
 
 export interface GroupRow {
@@ -14,9 +14,8 @@ export interface GroupRow {
   member_count: number
 }
 
-const G = t.admin.groups
-
 export function GroupsEditor({ rows }: { rows: GroupRow[] }) {
+  const t = useTranslations()
   const router = useRouter()
   const [pending, start] = useTransition()
   const [editing, setEditing] = useState<GroupRow | 'new' | null>(null)
@@ -41,14 +40,14 @@ export function GroupsEditor({ rows }: { rows: GroupRow[] }) {
       try {
         const r = await fn()
         if ('error' in r) {
-          setError(r.error === 'duplicate' ? G.duplicate : G.inUse)
+          setError(r.error === 'duplicate' ? t('admin.groups.duplicate') : t('admin.groups.inUse'))
         } else {
           setError(null)
           onOk()
         }
       } catch (err) {
         console.error(err)
-        setError(t.genericError)
+        setError(t('genericError'))
       } finally {
         router.refresh()
       }
@@ -58,10 +57,10 @@ export function GroupsEditor({ rows }: { rows: GroupRow[] }) {
   // Screen-reader messages in Italian, naming groups instead of their ids.
   const nameOf = (id: string | number) => order.find((g) => g.id === id)?.name ?? ''
   const announcements: Announcements = {
-    onDragStart: ({ active }) => G.drag.picked(nameOf(active.id)),
-    onDragOver: ({ active, over }) => (over ? G.drag.over(nameOf(active.id), nameOf(over.id)) : undefined),
-    onDragEnd: ({ active, over }) => (over ? G.drag.dropped(nameOf(active.id), nameOf(over.id)) : G.drag.cancelled(nameOf(active.id))),
-    onDragCancel: ({ active }) => G.drag.cancelled(nameOf(active.id)),
+    onDragStart: ({ active }) => t('admin.groups.drag.picked', { name: nameOf(active.id) }),
+    onDragOver: ({ active, over }) => (over ? t('admin.groups.drag.over', { name: nameOf(active.id), target: nameOf(over.id) }) : undefined),
+    onDragEnd: ({ active, over }) => (over ? t('admin.groups.drag.dropped', { name: nameOf(active.id), target: nameOf(over.id) }) : t('admin.groups.drag.cancelled', { name: nameOf(active.id) })),
+    onDragCancel: ({ active }) => t('admin.groups.drag.cancelled', { name: nameOf(active.id) }),
   }
 
   function onDragEnd({ active, over }: DragEndEvent) {
@@ -83,33 +82,33 @@ export function GroupsEditor({ rows }: { rows: GroupRow[] }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-neutral-600">{G.hint}</p>
-      <button type="button" onClick={() => { setError(null); setEditing('new') }} className="rounded-full bg-blue-800 px-4 py-2 text-sm font-semibold text-white">{G.add}</button>
+      <p className="text-sm text-neutral-600">{t('admin.groups.hint')}</p>
+      <button type="button" onClick={() => { setError(null); setEditing('new') }} className="rounded-full bg-blue-800 px-4 py-2 text-sm font-semibold text-white">{t('admin.groups.add')}</button>
 
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
 
       {editing && (
         <form key={editing === 'new' ? 'new' : editing.id} onSubmit={submit} className="flex flex-wrap items-end gap-3 rounded-xl bg-white p-4 shadow-sm">
           <label className="block text-sm">
-            {G.name}
+            {t('admin.groups.name')}
             <input name="name" required maxLength={60} defaultValue={editing === 'new' ? '' : editing.name} className="mt-1 w-full rounded border p-2" />
           </label>
           <div className="flex gap-2">
-            <button type="submit" disabled={pending} className="rounded-full bg-blue-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">{t.save}</button>
-            <button type="button" onClick={() => { setError(null); setEditing(null) }} className="rounded-full border px-4 py-2 text-sm">{t.cancel}</button>
+            <button type="submit" disabled={pending} className="rounded-full bg-blue-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">{t('save')}</button>
+            <button type="button" onClick={() => { setError(null); setEditing(null) }} className="rounded-full border px-4 py-2 text-sm">{t('cancel')}</button>
           </div>
         </form>
       )}
 
-      <DndContext id={dndId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd} accessibility={{ announcements, screenReaderInstructions: { draggable: G.drag.instructions } }}>
+      <DndContext id={dndId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd} accessibility={{ announcements, screenReaderInstructions: { draggable: t('admin.groups.drag.instructions') } }}>
         <div className="overflow-x-auto rounded-xl bg-white shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-neutral-100 text-left">
-              <tr><th className="w-8 p-2"></th><th className="p-2">{G.name}</th><th className="w-px p-2">{G.members}</th><th className="p-2"></th></tr>
+              <tr><th className="w-8 p-2"></th><th className="p-2">{t('admin.groups.name')}</th><th className="w-px p-2">{t('admin.groups.members')}</th><th className="p-2"></th></tr>
             </thead>
             <SortableContext items={order.map((g) => g.id)} strategy={verticalListSortingStrategy}>
               <tbody>
-                {order.length === 0 && <tr><td colSpan={4} className="p-2 text-neutral-500">{G.none}</td></tr>}
+                {order.length === 0 && <tr><td colSpan={4} className="p-2 text-neutral-500">{t('admin.groups.none')}</td></tr>}
                 {order.map((r, i) => (
                   <SortableRow key={r.id} id={r.id} name={r.name} disabled={pending}>
                     <td className="p-2">{r.name}</td>
@@ -118,19 +117,19 @@ export function GroupsEditor({ rows }: { rows: GroupRow[] }) {
                       {/* One line, so the table keeps room for all buttons; it wraps only while the wider "Confermi?" shows.
                           On phones the drag handle replaces the arrows, which would not fit. */}
                       <div className={`flex items-center justify-end gap-1 ${confirmDelete === r.id ? 'flex-wrap' : ''}`}>
-                        <button type="button" disabled={pending || i === 0} onClick={() => run(() => moveGroup(r.id, 'up'), () => {})} aria-label={G.moveUp} title={G.moveUp} className="hidden rounded border px-2 py-1 disabled:opacity-40 sm:block">↑</button>
-                        <button type="button" disabled={pending || i === order.length - 1} onClick={() => run(() => moveGroup(r.id, 'down'), () => {})} aria-label={G.moveDown} title={G.moveDown} className="hidden rounded border px-2 py-1 disabled:opacity-40 sm:block">↓</button>
-                        <button type="button" onClick={() => { setError(null); setEditing(r) }} aria-label={t.editItem(r.name)} title={t.edit} className="rounded border p-1.5">
+                        <button type="button" disabled={pending || i === 0} onClick={() => run(() => moveGroup(r.id, 'up'), () => {})} aria-label={t('admin.groups.moveUp')} title={t('admin.groups.moveUp')} className="hidden rounded border px-2 py-1 disabled:opacity-40 sm:block">↑</button>
+                        <button type="button" disabled={pending || i === order.length - 1} onClick={() => run(() => moveGroup(r.id, 'down'), () => {})} aria-label={t('admin.groups.moveDown')} title={t('admin.groups.moveDown')} className="hidden rounded border px-2 py-1 disabled:opacity-40 sm:block">↓</button>
+                        <button type="button" onClick={() => { setError(null); setEditing(r) }} aria-label={t('editItem', { name: r.name })} title={t('edit')} className="rounded border p-1.5">
                           <PencilIcon />
                         </button>
                         {confirmDelete === r.id ? (
-                          <button type="button" disabled={pending} onClick={() => run(() => deleteGroup(r.id), () => setConfirmDelete(null))} className="whitespace-nowrap rounded bg-red-600 px-1.5 py-1 text-xs font-semibold text-white">{t.confirmDelete}</button>
+                          <button type="button" disabled={pending} onClick={() => run(() => deleteGroup(r.id), () => setConfirmDelete(null))} className="whitespace-nowrap rounded bg-red-600 px-1.5 py-1 text-xs font-semibold text-white">{t('confirmDelete')}</button>
                         ) : (
                           <button
                             type="button"
                             disabled={r.member_count > 0}
-                            aria-label={t.deleteItem(r.name)}
-                            title={r.member_count > 0 ? G.inUse : t.delete}
+                            aria-label={t('deleteItem', { name: r.name })}
+                            title={r.member_count > 0 ? t('admin.groups.inUse') : t('delete')}
                             onClick={() => { setError(null); setConfirmDelete(r.id) }}
                             className="rounded border border-red-300 p-1.5 text-red-700 disabled:opacity-40"
                           >
@@ -152,6 +151,7 @@ export function GroupsEditor({ rows }: { rows: GroupRow[] }) {
 
 /** A table row that can be dragged by its handle (mouse, touch or keyboard: Space, arrows, Space). */
 function SortableRow({ id, name, disabled, children }: { id: string; name: string; disabled: boolean; children: React.ReactNode }) {
+  const t = useTranslations()
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id, disabled })
   return (
     <tr
@@ -165,8 +165,8 @@ function SortableRow({ id, name, disabled, children }: { id: string; name: strin
           ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
-          aria-label={G.dragHandle(name)}
-          title={G.dragHandle(name)}
+          aria-label={t('admin.groups.dragHandle', { name: name })}
+          title={t('admin.groups.dragHandle', { name: name })}
           className="cursor-grab touch-none rounded px-1 text-lg leading-none text-neutral-400 hover:text-neutral-700 active:cursor-grabbing disabled:cursor-default"
         >
           ⠿

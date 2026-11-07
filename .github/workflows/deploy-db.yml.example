@@ -1,3 +1,8 @@
+# EXAMPLE — not active. GitHub only runs .yml/.yaml files in this folder.
+# To deploy your own installation's database from your repository, copy this file to
+# .github/workflows/deploy-db.yml and set the `production` environment secrets listed below
+# (see the README, "Prima configurazione").
+#
 name: Deploy database
 
 # Applies supabase/migrations to the production Supabase project.

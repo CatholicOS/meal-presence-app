@@ -22,6 +22,8 @@ export default async function globalSetup() {
   const [group] = await sql`insert into groups (name) values ('Ospiti') returning id`
   await sql`insert into persons (full_name, group_id, token_hash) values (${E2E.memberName}, ${group.id}, ${hashToken(E2E.memberToken)})`
   await sql`update settings set value = '"10:00"' where key in ('lunch_cutoff', 'dinner_cutoff')`
+  await sql`update settings set value = '"it"' where key = 'default_locale'`
+  await sql`update settings set value = '"Europe/Rome"' where key = 'time_zone'`
 
   // listUsers is paginated: walk every page before concluding the user is missing.
   async function findAuthUserByEmail(email: string) {

@@ -17,8 +17,8 @@ describe('setCell', () => {
   const cellA = { present: true, explicit: false, locked: false, defaultPresent: true }
   const cellB = { present: false, explicit: false, locked: false, defaultPresent: false }
   const rows: DayRow[] = [
-    { date: '2026-09-14', label: 'lunedì 14 settembre', isToday: false, lunch: cellA, dinner: cellA },
-    { date: '2026-09-15', label: 'martedì 15 settembre', isToday: false, lunch: cellB, dinner: cellB },
+    { date: '2026-09-14', isToday: false, lunch: cellA, dinner: cellA },
+    { date: '2026-09-15', isToday: false, lunch: cellB, dinner: cellB },
   ]
 
   it('replaces only the target cell of the target row', () => {

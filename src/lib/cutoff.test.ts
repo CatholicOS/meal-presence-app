@@ -30,7 +30,7 @@ describe('isLocked', () => {
     expect(isLocked({ date: '2026-03-29', meal: 'lunch' }, new Date('2026-03-29T08:00:00Z'), S)).toBe(true)
   })
   it('respects per-meal cutoffs', () => {
-    const s = { lunch_cutoff: '10:00', dinner_cutoff: '15:00' }
+    const s = { ...S, lunch_cutoff: '10:00', dinner_cutoff: '15:00' }
     const now = new Date('2026-09-13T10:00:00Z') // 12:00 Rome
     expect(isLocked({ date: '2026-09-13', meal: 'lunch' }, now, s)).toBe(true)
     expect(isLocked({ date: '2026-09-13', meal: 'dinner' }, now, s)).toBe(false)
@@ -45,7 +45,19 @@ describe('firstUnlockedCell', () => {
     expect(firstUnlockedCell(new Date('2026-09-13T12:00:00Z'), S)).toEqual({ date: '2026-09-14', meal: 'lunch' })
   })
   it('is today dinner between a lunch and a later dinner cutoff', () => {
-    const s = { lunch_cutoff: '10:00', dinner_cutoff: '15:00' }
+    const s = { ...S, lunch_cutoff: '10:00', dinner_cutoff: '15:00' }
     expect(firstUnlockedCell(new Date('2026-09-13T10:00:00Z'), s)).toEqual({ date: '2026-09-13', meal: 'dinner' })
+  })
+})
+
+describe('time zone', () => {
+  it('locks at the cutoff in the community’s own time zone', () => {
+    const ny = { ...S, time_zone: 'America/New_York' } // 10:00 EDT = 14:00 UTC
+    expect(isLocked({ date: '2026-09-13', meal: 'lunch' }, new Date('2026-09-13T13:59:00Z'), ny)).toBe(false)
+    expect(isLocked({ date: '2026-09-13', meal: 'lunch' }, new Date('2026-09-13T14:00:00Z'), ny)).toBe(true)
+    // 02:00 UTC is 04:00 in Rome (before the cutoff) but 11:00 in Tokyo (after it)
+    const tokyo = { ...S, time_zone: 'Asia/Tokyo' }
+    expect(firstUnlockedCell(new Date('2026-09-13T02:00:00Z'), S)).toEqual({ date: '2026-09-13', meal: 'lunch' })
+    expect(firstUnlockedCell(new Date('2026-09-13T02:00:00Z'), tokyo)).toEqual({ date: '2026-09-14', meal: 'lunch' })
   })
 })

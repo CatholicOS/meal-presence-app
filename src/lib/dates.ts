@@ -6,7 +6,8 @@ export interface Cell {
 }
 
 export const MEALS: readonly Meal[] = ['lunch', 'dinner'] as const
-export const ROME_TZ = 'Europe/Rome'
+/** The community's time zone when none is set (admin setting `time_zone`). */
+export const DEFAULT_TIME_ZONE = 'Europe/Rome'
 
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/
 const DAY_MS = 86_400_000
@@ -54,22 +55,41 @@ export function compareCells(a: Cell, b: Cell): number {
   return cellKey(a) - cellKey(b)
 }
 
-const romeFmt = new Intl.DateTimeFormat('en-CA', {
-  timeZone: ROME_TZ,
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-  hourCycle: 'h23',
-})
+const partsFormatters = new Map<string, Intl.DateTimeFormat>()
+function partsFormatter(timeZone: string): Intl.DateTimeFormat {
+  let f = partsFormatters.get(timeZone)
+  if (!f) {
+    f = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    })
+    partsFormatters.set(timeZone, f)
+  }
+  return f
+}
 
-/** Local calendar date and minutes-since-midnight in Europe/Rome for a given instant. */
-export function romeParts(now: Date): { date: IsoDate; minutes: number } {
-  const parts = romeFmt.formatToParts(now)
+/** Local calendar date and minutes-since-midnight in `timeZone` for a given instant. */
+export function localParts(now: Date, timeZone: string = DEFAULT_TIME_ZONE): { date: IsoDate; minutes: number } {
+  const parts = partsFormatter(timeZone).formatToParts(now)
   const get = (type: string) => parts.find((p) => p.type === type)!.value
   return {
     date: `${get('year')}-${get('month')}-${get('day')}`,
     minutes: Number(get('hour')) * 60 + Number(get('minute')),
+  }
+}
+
+/** True for an IANA time zone name this runtime knows, e.g. 'Europe/Rome'. */
+export function isTimeZone(value: unknown): value is string {
+  if (typeof value !== 'string' || value === '') return false
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: value })
+    return true
+  } catch {
+    return false
   }
 }

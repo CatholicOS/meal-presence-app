@@ -1,19 +1,21 @@
 import Link from 'next/link'
-import { formatDayLong, formatTime, mealName, mealNameLower, t } from '@/i18n/it'
-import { type IsoDate, type Meal, MEALS, addDays, isIsoDate, romeParts } from '@/lib/dates'
+import { getFormatter, getTranslations } from 'next-intl/server'
+import { type IsoDate, type Meal, MEALS, addDays, isIsoDate, localParts, toUtcDate } from '@/lib/dates'
 import { AdminToggle } from '@/components/admin/AdminToggle'
 import { type ExtraKind, GuestStepper } from '@/components/admin/GuestStepper'
 import { RefreshButton } from '@/components/admin/RefreshButton'
 import { requireAdmin } from '@/server/auth'
 import { db } from '@/server/db'
+import { getSettings } from '@/server/settings'
 import { type RosterRow, dietaryNotes, isExplicit, isPresent, summarise } from './kitchen.logic'
 
 interface GuestRow { meal: Meal; kind: ExtraKind; count: number; note: string | null }
 
 export default async function KitchenPage({ searchParams }: { searchParams: Promise<{ d?: string; tutti?: string }> }) {
   await requireAdmin()
+  const [t, format, settings] = await Promise.all([getTranslations(), getFormatter(), getSettings()])
   const { d, tutti } = await searchParams
-  const today = romeParts(new Date()).date
+  const today = localParts(new Date(), settings.time_zone).date
   const date: IsoDate = d && isIsoDate(d) ? d : today
   const showAll = tutti === '1'
 
@@ -40,18 +42,18 @@ export default async function KitchenPage({ searchParams }: { searchParams: Prom
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-semibold">{t.admin.kitchen.title}</h1>
+        <h1 className="text-2xl font-semibold">{t('admin.kitchen.title')}</h1>
         <div className="no-print flex items-center gap-2">
-          <Link href={nav(addDays(date, -1))} aria-label={t.admin.kitchen.prevDay} className="rounded border px-3 py-1">‹</Link>
+          <Link href={nav(addDays(date, -1))} aria-label={t('admin.kitchen.prevDay')} className="rounded border px-3 py-1">‹</Link>
           <form action="/admin" className="flex items-center gap-2">
             <input type="date" name="d" defaultValue={date} className="rounded border px-2 py-1" />
             {showAll && <input type="hidden" name="tutti" value="1" />}
-            <button type="submit" className="rounded border px-3 py-1">{t.admin.kitchen.go}</button>
+            <button type="submit" className="rounded border px-3 py-1">{t('admin.kitchen.go')}</button>
           </form>
-          <Link href={nav(addDays(date, 1))} aria-label={t.admin.kitchen.nextDay} className="rounded border px-3 py-1">›</Link>
+          <Link href={nav(addDays(date, 1))} aria-label={t('admin.kitchen.nextDay')} className="rounded border px-3 py-1">›</Link>
         </div>
-        <span className="text-lg capitalize">{formatDayLong(date)}</span>
-        <RefreshButton updatedAt={formatTime(new Date())} />
+        <span className="text-lg capitalize">{format.dateTime(toUtcDate(date), 'dayLong')}</span>
+        <RefreshButton updatedAt={format.dateTime(new Date(), 'time')} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -66,29 +68,29 @@ export default async function KitchenPage({ searchParams }: { searchParams: Prom
           const notes = dietaryNotes(roster, meal)
           return (
             <section key={meal} className="rounded-xl bg-white p-4 shadow-sm" data-testid={`meal-${meal}`}>
-              <h2 className="text-xl font-semibold">{mealName[meal]}</h2>
+              <h2 className="text-xl font-semibold">{t(`meal.${meal}`)}</h2>
               <p className="mt-1 text-3xl font-bold" data-testid={`total-${meal}`}>
-                {s.total + guestCount + propdCount} <span className="text-base font-normal text-neutral-500">{t.admin.kitchen.total}</span>
+                {s.total + guestCount + propdCount} <span className="text-base font-normal text-neutral-500">{t('admin.kitchen.total')}</span>
               </p>
               <p className="text-sm text-neutral-600">
-                {t.admin.kitchen.community} {s.total}
+                {t('admin.kitchen.community')} {s.total}
                 {s.byGroup.length > 1 && <> ({s.byGroup.map(([name, n]) => `${name} ${n}`).join(' · ')})</>}
-                {' · '}{t.admin.kitchen.guests} {guestCount}
-                {' · '}<abbr title={t.admin.kitchen.propdFull} className="no-underline">{t.admin.kitchen.propd}</abbr> {propdCount}
+                {' · '}{t('admin.kitchen.guests')} {guestCount}
+                {' · '}<abbr title={t('admin.kitchen.propdFull')} className="no-underline">{t('admin.kitchen.propd')}</abbr> {propdCount}
               </p>
               <div className="no-print">
                 <GuestStepper key={`${date}-${meal}-guests`} date={date} meal={meal} count={guestCount} note={g?.note ?? null} />
                 <GuestStepper key={`${date}-${meal}-propd`} date={date} meal={meal} kind="propd" count={propdCount} note={p?.note ?? null} />
               </div>
-              {g?.note && <p className="hidden text-sm print:block">{t.admin.kitchen.guests}: {g.note}</p>}
-              {p?.note && <p className="hidden text-sm print:block">{t.admin.kitchen.propdFull}: {p.note}</p>}
+              {g?.note && <p className="hidden text-sm print:block">{t('admin.kitchen.guests')}: {g.note}</p>}
+              {p?.note && <p className="hidden text-sm print:block">{t('admin.kitchen.propdFull')}: {p.note}</p>}
 
               <h3 className="mt-4 font-medium">
-                {defaultPresent ? t.admin.kitchen.absentAt(mealNameLower[meal]) : t.admin.kitchen.presentAt(mealNameLower[meal])} ({listed.length})
-                <span className="ml-2 text-xs font-normal text-neutral-500">{defaultPresent ? t.admin.kitchen.defaultPresent : t.admin.kitchen.defaultAbsent}</span>
+                {defaultPresent ? t('admin.kitchen.absentAt', { meal }) : t('admin.kitchen.presentAt', { meal })} ({listed.length})
+                <span className="ml-2 text-xs font-normal text-neutral-500">{defaultPresent ? t('admin.kitchen.defaultPresent') : t('admin.kitchen.defaultAbsent')}</span>
               </h3>
               <ul className="mt-2 divide-y text-sm">
-                {(showAll ? roster : listed).length === 0 && <li className="py-1 text-neutral-500">{t.admin.kitchen.nobody}</li>}
+                {(showAll ? roster : listed).length === 0 && <li className="py-1 text-neutral-500">{t('admin.kitchen.nobody')}</li>}
                 {(showAll ? roster : listed).map((r) => (
                   <li key={`${r.person_id}-${date}`} className="flex items-center justify-between py-1">
                     <span>{r.full_name}{r.group_name && <span className="ml-2 text-xs text-neutral-500">{r.group_name}</span>}</span>
@@ -99,7 +101,7 @@ export default async function KitchenPage({ searchParams }: { searchParams: Prom
 
               {notes.length > 0 && (
                 <div data-testid={`dietary-notes-${meal}`} className="mt-4">
-                  <h3 className="font-medium">{t.admin.kitchen.dietaryNotes} ({notes.length})</h3>
+                  <h3 className="font-medium">{t('admin.kitchen.dietaryNotes')} ({notes.length})</h3>
                   <dl className="mt-2 divide-y text-sm">
                     {notes.map((n) => (
                       <div key={n.person_id} className="py-1">
@@ -117,7 +119,7 @@ export default async function KitchenPage({ searchParams }: { searchParams: Prom
 
       <div className="no-print mt-4 flex gap-4 text-sm">
         <Link href={`/admin?d=${date}${showAll ? '' : '&tutti=1'}`} className="text-blue-800 hover:underline">
-          {showAll ? t.admin.kitchen.showExceptions : t.admin.kitchen.showAll}
+          {showAll ? t('admin.kitchen.showExceptions') : t('admin.kitchen.showAll')}
         </Link>
       </div>
     </div>
