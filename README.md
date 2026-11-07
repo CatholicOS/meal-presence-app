@@ -33,9 +33,12 @@ Il repo ha un workflow GitHub Actions:
 - **CI** (`.github/workflows/ci.yml`) — su ogni PR e push su `main`: lint, typecheck, test unitari,
   Supabase locale in Docker con test di integrazione, Playwright e2e, build di produzione.
 
-Le migrazioni del database non vengono applicate automaticamente: chi gestisce un'installazione le
-applica al proprio progetto Supabase con `supabase db push` (vedi sotto). L'app si può pubblicare
-su Vercel tramite l'integrazione Git.
+Le migrazioni del database non vengono applicate automaticamente da questo repo: chi gestisce
+un'installazione le applica al proprio progetto Supabase con `supabase db push` (vedi sotto), oppure
+automatizza il passo con l'esempio **Deploy database** (`.github/workflows/deploy-db.yml.example`):
+copialo come `.github/workflows/deploy-db.yml` nel proprio repo e a ogni push su `main` che tocca
+`supabase/migrations/**` (o manualmente da *Actions → Run workflow*) esegue `supabase db push` sul
+progetto di produzione. L'app si può pubblicare su Vercel tramite l'integrazione Git.
 
 ### Prima configurazione
 
@@ -54,6 +57,12 @@ su Vercel tramite l'integrazione Git.
 2. **Migrazioni** (dal tuo computer, la prima volta e a ogni aggiornamento che aggiunge file in
    `supabase/migrations/`): `npx supabase login`, poi `npx supabase link --project-ref <Reference ID>`
    (chiede la password del database) e `npx supabase db push`.
+   Se usi l'esempio di workflow *Deploy database*, imposta invece i **segreti GitHub**
+   (*Settings → Environments → `production` → Environment secrets*):
+   - `SUPABASE_ACCESS_TOKEN` — personal access token da https://supabase.com/dashboard/account/tokens
+   - `SUPABASE_DB_PASSWORD` — password del database del progetto
+   - `SUPABASE_PROJECT_ID` — il Reference ID
+   e lancia *Actions → Deploy database → Run workflow* per applicare le migrazioni la prima volta.
 3. **Seed**: esegui `supabase/seed.sql` nell'SQL editor (una sola volta; è idempotente).
 4. **Admin** (dal tuo computer, contro il progetto di produzione; le variabili esplicite hanno la precedenza su `.env.local`):
    `SUPABASE_URL=https://<ref>.supabase.co SUPABASE_SERVICE_ROLE_KEY=<secret key> npx tsx scripts/create-admin.ts email password`
