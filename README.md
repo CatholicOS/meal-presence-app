@@ -28,13 +28,14 @@ npm run test:e2e          # Playwright (usa .env.local + dev server su :3100)
 
 ## Deploy
 
-Il repo ha due workflow GitHub Actions:
+Il repo ha un workflow GitHub Actions:
 
 - **CI** (`.github/workflows/ci.yml`) — su ogni PR e push su `main`: lint, typecheck, test unitari,
   Supabase locale in Docker con test di integrazione, Playwright e2e, build di produzione.
-- **Deploy database** (`.github/workflows/deploy-db.yml`) — su push su `main` che tocca
-  `supabase/migrations/**` (o manualmente da *Actions → Run workflow*): `supabase db push` sul progetto
-  di produzione. L'app è pubblicata da Vercel tramite l'integrazione Git.
+
+Le migrazioni del database non vengono applicate automaticamente: chi gestisce un'installazione le
+applica al proprio progetto Supabase con `supabase db push` (vedi sotto). L'app si può pubblicare
+su Vercel tramite l'integrazione Git.
 
 ### Prima configurazione
 
@@ -50,11 +51,9 @@ Il repo ha due workflow GitHub Actions:
    un SMTP personalizzato puoi usare `supabase/templates/recovery.html` come *Reset Password* template (link con
    `{{ .TokenHash }}`), anch'esso supportato. Il servizio email integrato di Supabase è limitato a pochi messaggi
    all'ora: sufficiente per i reset occasionali degli amministratori, che devono avere un indirizzo email reale.
-2. **Segreti GitHub** (*Settings → Environments → `production` → Environment secrets*):
-   - `SUPABASE_ACCESS_TOKEN` — personal access token da https://supabase.com/dashboard/account/tokens
-   - `SUPABASE_DB_PASSWORD` — password del database del progetto
-   - `SUPABASE_PROJECT_ID` — il Reference ID
-   Poi lancia *Actions → Deploy database → Run workflow* per applicare le migrazioni la prima volta.
+2. **Migrazioni** (dal tuo computer, la prima volta e a ogni aggiornamento che aggiunge file in
+   `supabase/migrations/`): `npx supabase login`, poi `npx supabase link --project-ref <Reference ID>`
+   (chiede la password del database) e `npx supabase db push`.
 3. **Seed**: esegui `supabase/seed.sql` nell'SQL editor (una sola volta; è idempotente).
 4. **Admin** (dal tuo computer, contro il progetto di produzione; le variabili esplicite hanno la precedenza su `.env.local`):
    `SUPABASE_URL=https://<ref>.supabase.co SUPABASE_SERVICE_ROLE_KEY=<secret key> npx tsx scripts/create-admin.ts email password`
